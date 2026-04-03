@@ -8,11 +8,12 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #111318; font-family: 'Apple SD Gothic Neo','Noto Sans KR',sans-serif; color: #e2e4ea; min-height: 100vh; padding: 20px; }
 .wrap { max-width: 720px; margin: 0 auto; }
-#key-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 260px; }
-.key-card { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 14px; padding: 28px; width: 100%; max-width: 440px; }
+#key-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 280px; }
+.key-card { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 14px; padding: 28px; width: 100%; max-width: 460px; }
 .key-title { font-size: 15px; font-weight: 600; color: #f0f1f5; margin-bottom: 6px; }
-.key-desc { font-size: 12px; color: #6b7280; margin-bottom: 20px; line-height: 1.7; }
+.key-desc { font-size: 12px; color: #6b7280; margin-bottom: 6px; line-height: 1.7; }
 .key-desc a { color: #7c86f5; text-decoration: none; }
+.key-badge { display: inline-block; background: #1a3a1a; border: 1px solid #2a5a2a; border-radius: 6px; padding: 4px 10px; font-size: 11px; color: #34d399; margin-bottom: 16px; }
 .key-row { display: flex; gap: 8px; margin-bottom: 8px; }
 .key-input { flex: 1; background: #0f1117; border: 1px solid #2a2d3a; border-radius: 8px; padding: 9px 12px; font-size: 13px; color: #e2e4ea; font-family: 'SF Mono','Fira Code',monospace; outline: none; transition: border-color 0.15s; }
 .key-input:focus { border-color: #5056d6; }
@@ -52,14 +53,14 @@ body { background: #111318; font-family: 'Apple SD Gothic Neo','Noto Sans KR',sa
 <div class="wrap">
   <div id="key-screen">
     <div class="key-card">
-      <div class="key-title">Anthropic API 키 입력</div>
+      <div class="key-title">Alpha Vantage API 키 입력</div>
       <div class="key-desc">
-        Claude AI로 금융 데이터를 불러옵니다.<br>
-        API 키는 이 브라우저에만 저장되며 외부로 전송되지 않아요.<br>
-        키 발급 → <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>
+        금융 데이터를 무료로 불러옵니다.<br>
+        키 발급 → <a href="https://www.alphavantage.co/support/#api-key" target="_blank">alphavantage.co</a> (이름+이메일만, 카드 불필요)
       </div>
+      <div class="key-badge">✓ 완전 무료 · 카드 등록 없음 · 하루 25회</div>
       <div class="key-row">
-        <input class="key-input" id="kinput" type="password" placeholder="sk-ant-api03-..." />
+        <input class="key-input" id="kinput" type="text" placeholder="예: ABCDEF1234567890" />
         <button class="key-btn" id="kbtn" onclick="saveKey()">저장</button>
       </div>
       <div class="key-err" id="kerr"></div>
@@ -71,7 +72,7 @@ body { background: #111318; font-family: 'Apple SD Gothic Neo','Noto Sans KR',sa
       <span class="dash-title">한국 금융 시장</span>
       <div class="header-r">
         <span class="updated" id="utime"></span>
-        <button class="ref-btn" id="rbtn" onclick="fetchData()">
+        <button class="ref-btn" id="rbtn" onclick="fetchAll()">
           <span id="ricon">↻</span> 새로고침
         </button>
       </div>
@@ -83,24 +84,17 @@ body { background: #111318; font-family: 'Apple SD Gothic Neo','Noto Sans KR',sa
       <div class="card"><div class="clabel"><span class="dot" style="background:#a78bfa"></span>환율</div><div class="sk" style="height:26px;width:80%;margin-bottom:7px"></div><div class="sk" style="height:13px;width:55%"></div></div>
     </div>
     <div class="footer">
-      <span class="footer-note">데이터는 참고용이며 실제와 다를 수 있습니다</span>
+      <span class="footer-note">Alpha Vantage 데이터 · 15~20분 지연 · 참고용</span>
       <button class="reset-btn" onclick="resetKey()">API 키 변경</button>
     </div>
   </div>
 </div>
 <script>
-const ITEMS = [
-  { key:'kospi',  label:'KOSPI',  dot:'#378ADD', unit:'',  dec:2 },
-  { key:'kosdaq', label:'KOSDAQ', dot:'#34d399', unit:'',  dec:2 },
-  { key:'gold',   label:'Gold',   dot:'#fbbf24', unit:'$', dec:2, sub:'USD/oz' },
-  { key:'usdkrw', label:'환율',   dot:'#a78bfa', unit:'₩', dec:1, sub:'원/달러' },
-];
-
-const getKey = () => localStorage.getItem('fin_api_key') || '';
+const getKey = () => localStorage.getItem('av_api_key') || '';
 
 function init() {
   const k = getKey();
-  if (k.startsWith('sk-ant')) { show('dash'); fetchData(); }
+  if (k) { show('dash'); fetchAll(); }
   else show('key');
 }
 
@@ -114,25 +108,28 @@ async function saveKey() {
   const err = document.getElementById('kerr');
   const btn = document.getElementById('kbtn');
   err.textContent = '';
-  if (!k.startsWith('sk-ant')) { err.textContent = '유효한 API 키를 입력해주세요 (sk-ant 로 시작)'; return; }
+  if (!k || k.length < 8) { err.textContent = 'API 키를 입력해주세요'; return; }
   btn.disabled = true; btn.textContent = '확인 중...';
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01'},
-      body: JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:10,messages:[{role:'user',content:'hi'}]})
-    });
-    if (r.status === 401 || r.status === 403) throw new Error('invalid');
-    localStorage.setItem('fin_api_key', k);
-    show('dash'); fetchData();
-  } catch {
-    err.textContent = '키 인증 실패. 키를 다시 확인해주세요.';
-    btn.disabled = false; btn.textContent = '저장';
+    const r = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=005930.KS&apikey=${k}`);
+    const j = await r.json();
+    if (j['Note'] || j['Information']) throw new Error('limit');
+    if (!j['Global Quote']) throw new Error('invalid');
+    localStorage.setItem('av_api_key', k);
+    show('dash'); fetchAll();
+  } catch(e) {
+    if (e.message === 'limit') {
+      localStorage.setItem('av_api_key', k);
+      show('dash'); fetchAll();
+    } else {
+      err.textContent = '키 확인 실패. 키를 다시 확인해주세요.';
+      btn.disabled = false; btn.textContent = '저장';
+    }
   }
 }
 
 function resetKey() {
-  localStorage.removeItem('fin_api_key');
+  localStorage.removeItem('av_api_key');
   document.getElementById('kinput').value = '';
   document.getElementById('kerr').textContent = '';
   show('key');
@@ -141,50 +138,95 @@ function resetKey() {
 const fmt = (v, dec, unit) => {
   if (v == null) return '—';
   const n = parseFloat(v);
-  return isNaN(n) ? '—' : (unit||'') + n.toLocaleString('ko-KR',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+  return isNaN(n) ? '—' : (unit||'') + n.toLocaleString('ko-KR', {minimumFractionDigits:dec, maximumFractionDigits:dec});
 };
 
 const fmtChg = (c, p) => {
-  if (c == null) return {html:'—',cls:'neutral'};
+  if (c == null) return {html:'—', cls:'neutral'};
   const up = parseFloat(c) >= 0;
-  const ca = Math.abs(parseFloat(c)).toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const ca = Math.abs(parseFloat(c)).toLocaleString('ko-KR', {minimumFractionDigits:2, maximumFractionDigits:2});
   const pa = Math.abs(parseFloat(p)).toFixed(2);
   return {html:`${up?'▲':'▼'} ${ca} (${pa}%)`, cls: up?'up':'down'};
 };
 
-function renderGrid(data) {
-  document.getElementById('grid').innerHTML = ITEMS.map(item => {
-    const d = data[item.key] || {};
-    const v = d.value != null ? `<div class="cval">${fmt(d.value,item.dec,item.unit)}</div>` : `<div class="cval" style="font-size:13px;color:#374151">데이터 없음</div>`;
+const CARDS = [
+  { id:'kospi',  label:'KOSPI',  dot:'#378ADD', unit:'',  dec:2 },
+  { id:'kosdaq', label:'KOSDAQ', dot:'#34d399', unit:'',  dec:2 },
+  { id:'gold',   label:'Gold',   dot:'#fbbf24', unit:'$', dec:2, sub:'USD/oz' },
+  { id:'usdkrw', label:'환율',   dot:'#a78bfa', unit:'₩', dec:1, sub:'원/달러' },
+];
+
+let data = { kospi:{}, kosdaq:{}, gold:{}, usdkrw:{} };
+
+function renderGrid() {
+  document.getElementById('grid').innerHTML = CARDS.map(c => {
+    const d = data[c.id] || {};
+    const v = d.value != null
+      ? `<div class="cval">${fmt(d.value, c.dec, c.unit)}</div>`
+      : `<div class="cval" style="font-size:13px;color:#374151">${d.error || '로딩 중...'}</div>`;
     const ch = fmtChg(d.change, d.pct);
-    return `<div class="card"><div class="clabel"><span class="dot" style="background:${item.dot}"></span>${item.label}</div>${v}<div class="cchg ${ch.cls}">${ch.html}</div>${item.sub?`<div class="csub">${item.sub}</div>`:''}</div>`;
+    return `<div class="card">
+      <div class="clabel"><span class="dot" style="background:${c.dot}"></span>${c.label}</div>
+      ${v}
+      <div class="cchg ${ch.cls}">${ch.html}</div>
+      ${c.sub ? `<div class="csub">${c.sub}</div>` : ''}
+    </div>`;
   }).join('');
 }
 
-async function fetchData() {
+async function fetchQuote(symbol) {
+  const k = getKey();
+  const r = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${k}`);
+  const j = await r.json();
+  if (j['Note'] || j['Information']) throw new Error('rate_limit');
+  const q = j['Global Quote'];
+  if (!q || !q['05. price']) throw new Error('no_data');
+  return {
+    value: parseFloat(q['05. price']),
+    change: parseFloat(q['09. change']),
+    pct: parseFloat(q['10. change percent'].replace('%',''))
+  };
+}
+
+async function fetchFX(from, to) {
+  const k = getKey();
+  const r = await fetch(`https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${from}&to_currency=${to}&apikey=${k}`);
+  const j = await r.json();
+  if (j['Note'] || j['Information']) throw new Error('rate_limit');
+  const q = j['Realtime Currency Exchange Rate'];
+  if (!q) throw new Error('no_data');
+  return {
+    value: parseFloat(q['5. Exchange Rate']),
+    change: null,
+    pct: null
+  };
+}
+
+async function fetchAll() {
   const btn = document.getElementById('rbtn');
   const icon = document.getElementById('ricon');
   btn.disabled = true; icon.className = 'spin';
-  const k = getKey();
-  const prompt = `오늘 기준으로 KOSPI, KOSDAQ, 국제 금 현물가격(USD/oz), 달러원 환율의 현재값·전일대비 변동·변동률을 웹 검색 후 아래 JSON으로만 답해줘. JSON 외 텍스트나 코드블록 없이 숫자는 number 타입으로.
-{"kospi":{"value":숫자,"change":숫자,"pct":숫자},"kosdaq":{"value":숫자,"change":숫자,"pct":숫자},"gold":{"value":숫자,"change":숫자,"pct":숫자},"usdkrw":{"value":숫자,"change":숫자,"pct":숫자}}`;
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01'},
-      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})
-    });
-    if (res.status === 401 || res.status === 403) { resetKey(); return; }
-    const json = await res.json();
-    const txt = (json.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
-    const clean = txt.replace(/```json|```/g,'').trim();
-    const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
-    if (s===-1||e===-1) throw new Error('no json');
-    renderGrid(JSON.parse(clean.slice(s,e+1)));
-    const now = new Date();
-    document.getElementById('utime').textContent = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}) + ' 기준';
-  } catch { document.getElementById('grid').innerHTML = `<div style="grid-column:1/-1;padding:16px 0;font-size:13px;color:#fb923c;">⚠ 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</div>`; }
-  finally { btn.disabled = false; icon.className = ''; icon.textContent = '↻'; }
+
+  data = { kospi:{}, kosdaq:{}, gold:{}, usdkrw:{} };
+  renderGrid();
+
+  const fetchers = [
+    fetchQuote('399001.SHZ').catch(() => fetchQuote('KS11')).catch(() => ({value:null,change:null,pct:null,error:'데이터 없음'})),
+    fetchQuote('KOSDAQ').catch(() => ({value:null,change:null,pct:null,error:'데이터 없음'})),
+    fetchQuote('XAUUSD').catch(() => fetchFX('XAU','USD')).catch(() => ({value:null,change:null,pct:null,error:'데이터 없음'})),
+    fetchFX('USD','KRW').catch(() => ({value:null,change:null,pct:null,error:'데이터 없음'})),
+  ];
+
+  const [kospi, kosdaq, gold, usdkrw] = await Promise.allSettled(fetchers);
+  data.kospi  = kospi.status  === 'fulfilled' ? kospi.value  : {value:null,error:'오류'};
+  data.kosdaq = kosdaq.status === 'fulfilled' ? kosdaq.value : {value:null,error:'오류'};
+  data.gold   = gold.status   === 'fulfilled' ? gold.value   : {value:null,error:'오류'};
+  data.usdkrw = usdkrw.status === 'fulfilled' ? usdkrw.value : {value:null,error:'오류'};
+
+  renderGrid();
+  const now = new Date();
+  document.getElementById('utime').textContent = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}) + ' 기준';
+  btn.disabled = false; icon.className = ''; icon.textContent = '↻';
 }
 
 document.getElementById('kinput').addEventListener('keydown', e => { if(e.key==='Enter') saveKey(); });
