@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한국 금융 시장</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #111318; font-family: 'Apple SD Gothic Neo','Noto Sans KR',sans-serif; color: #e2e4ea; min-height: 100vh; padding: 20px; }
+.wrap { max-width: 720px; margin: 0 auto; }
+#key-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 260px; }
+.key-card { background: #1a1d27; border: 1px solid #2a2d3a; border-radius: 14px; padding: 28px; width: 100%; max-width: 440px; }
+.key-title { font-size: 15px; font-weight: 600; color: #f0f1f5; margin-bottom: 6px; }
+.key-desc { font-size: 12px; color: #6b7280; margin-bottom: 20px; line-height: 1.7; }
+.key-desc a { color: #7c86f5; text-decoration: none; }
+.key-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.key-input { flex: 1; background: #0f1117; border: 1px solid #2a2d3a; border-radius: 8px; padding: 9px 12px; font-size: 13px; color: #e2e4ea; font-family: 'SF Mono','Fira Code',monospace; outline: none; transition: border-color 0.15s; }
+.key-input:focus { border-color: #5056d6; }
+.key-input::placeholder { color: #3a3d4a; font-family: inherit; }
+.key-btn { background: #5056d6; border: none; border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600; color: #fff; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+.key-btn:hover { background: #4046c0; }
+.key-btn:disabled { background: #2a2d3a; color: #6b7280; cursor: not-allowed; }
+.key-err { font-size: 12px; color: #fb923c; min-height: 18px; }
+#dash-screen { display: none; }
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.dash-title { font-size: 11px; font-weight: 600; color: #4b5563; letter-spacing: 0.1em; text-transform: uppercase; }
+.header-r { display: flex; align-items: center; gap: 8px; }
+.updated { font-size: 11px; color: #374151; font-family: 'SF Mono',monospace; }
+.ref-btn { background: none; border: 1px solid #2a2d3a; border-radius: 8px; padding: 5px 12px; font-size: 12px; color: #6b7280; cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: inherit; transition: all 0.15s; }
+.ref-btn:hover { background: #1a1d27; color: #e2e4ea; border-color: #3a3d4a; }
+.ref-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 460px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.card { background: #1a1d27; border-radius: 12px; padding: 16px; border: 1px solid #21242f; }
+.clabel { font-size: 10px; color: #4b5563; font-weight: 600; letter-spacing: 0.06em; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; text-transform: uppercase; }
+.dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.cval { font-size: 20px; font-weight: 700; color: #f0f1f5; margin-bottom: 5px; line-height: 1.2; letter-spacing: -0.02em; }
+.cchg { font-size: 12px; font-weight: 500; }
+.csub { font-size: 10px; color: #374151; margin-top: 4px; }
+.up { color: #34d399; } .down { color: #fb923c; } .neutral { color: #6b7280; }
+.sk { background: #21242f; border-radius: 4px; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:.5} 50%{opacity:1} }
+.spin { display: inline-block; animation: rot .8s linear infinite; }
+@keyframes rot { to { transform: rotate(360deg); } }
+.footer { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; }
+.footer-note { font-size: 10px; color: #1f2937; }
+.reset-btn { font-size: 10px; color: #374151; cursor: pointer; text-decoration: underline; background: none; border: none; font-family: inherit; }
+.reset-btn:hover { color: #6b7280; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="key-screen">
+    <div class="key-card">
+      <div class="key-title">Anthropic API 키 입력</div>
+      <div class="key-desc">
+        Claude AI로 금융 데이터를 불러옵니다.<br>
+        API 키는 이 브라우저에만 저장되며 외부로 전송되지 않아요.<br>
+        키 발급 → <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>
+      </div>
+      <div class="key-row">
+        <input class="key-input" id="kinput" type="password" placeholder="sk-ant-api03-..." />
+        <button class="key-btn" id="kbtn" onclick="saveKey()">저장</button>
+      </div>
+      <div class="key-err" id="kerr"></div>
+    </div>
+  </div>
+
+  <div id="dash-screen">
+    <div class="header">
+      <span class="dash-title">한국 금융 시장</span>
+      <div class="header-r">
+        <span class="updated" id="utime"></span>
+        <button class="ref-btn" id="rbtn" onclick="fetchData()">
+          <span id="ricon">↻</span> 새로고침
+        </button>
+      </div>
+    </div>
+    <div class="grid" id="grid">
+      <div class="card"><div class="clabel"><span class="dot" style="background:#378ADD"></span>KOSPI</div><div class="sk" style="height:26px;width:80%;margin-bottom:7px"></div><div class="sk" style="height:13px;width:55%"></div></div>
+      <div class="card"><div class="clabel"><span class="dot" style="background:#34d399"></span>KOSDAQ</div><div class="sk" style="height:26px;width:80%;margin-bottom:7px"></div><div class="sk" style="height:13px;width:55%"></div></div>
+      <div class="card"><div class="clabel"><span class="dot" style="background:#fbbf24"></span>Gold</div><div class="sk" style="height:26px;width:80%;margin-bottom:7px"></div><div class="sk" style="height:13px;width:55%"></div></div>
+      <div class="card"><div class="clabel"><span class="dot" style="background:#a78bfa"></span>환율</div><div class="sk" style="height:26px;width:80%;margin-bottom:7px"></div><div class="sk" style="height:13px;width:55%"></div></div>
+    </div>
+    <div class="footer">
+      <span class="footer-note">데이터는 참고용이며 실제와 다를 수 있습니다</span>
+      <button class="reset-btn" onclick="resetKey()">API 키 변경</button>
+    </div>
+  </div>
+</div>
+<script>
+const ITEMS = [
+  { key:'kospi',  label:'KOSPI',  dot:'#378ADD', unit:'',  dec:2 },
+  { key:'kosdaq', label:'KOSDAQ', dot:'#34d399', unit:'',  dec:2 },
+  { key:'gold',   label:'Gold',   dot:'#fbbf24', unit:'$', dec:2, sub:'USD/oz' },
+  { key:'usdkrw', label:'환율',   dot:'#a78bfa', unit:'₩', dec:1, sub:'원/달러' },
+];
+
+const getKey = () => localStorage.getItem('fin_api_key') || '';
+
+function init() {
+  const k = getKey();
+  if (k.startsWith('sk-ant')) { show('dash'); fetchData(); }
+  else show('key');
+}
+
+function show(s) {
+  document.getElementById('key-screen').style.display = s === 'key' ? 'flex' : 'none';
+  document.getElementById('dash-screen').style.display = s === 'dash' ? 'block' : 'none';
+}
+
+async function saveKey() {
+  const k = document.getElementById('kinput').value.trim();
+  const err = document.getElementById('kerr');
+  const btn = document.getElementById('kbtn');
+  err.textContent = '';
+  if (!k.startsWith('sk-ant')) { err.textContent = '유효한 API 키를 입력해주세요 (sk-ant 로 시작)'; return; }
+  btn.disabled = true; btn.textContent = '확인 중...';
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01'},
+      body: JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:10,messages:[{role:'user',content:'hi'}]})
+    });
+    if (r.status === 401 || r.status === 403) throw new Error('invalid');
+    localStorage.setItem('fin_api_key', k);
+    show('dash'); fetchData();
+  } catch {
+    err.textContent = '키 인증 실패. 키를 다시 확인해주세요.';
+    btn.disabled = false; btn.textContent = '저장';
+  }
+}
+
+function resetKey() {
+  localStorage.removeItem('fin_api_key');
+  document.getElementById('kinput').value = '';
+  document.getElementById('kerr').textContent = '';
+  show('key');
+}
+
+const fmt = (v, dec, unit) => {
+  if (v == null) return '—';
+  const n = parseFloat(v);
+  return isNaN(n) ? '—' : (unit||'') + n.toLocaleString('ko-KR',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+};
+
+const fmtChg = (c, p) => {
+  if (c == null) return {html:'—',cls:'neutral'};
+  const up = parseFloat(c) >= 0;
+  const ca = Math.abs(parseFloat(c)).toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const pa = Math.abs(parseFloat(p)).toFixed(2);
+  return {html:`${up?'▲':'▼'} ${ca} (${pa}%)`, cls: up?'up':'down'};
+};
+
+function renderGrid(data) {
+  document.getElementById('grid').innerHTML = ITEMS.map(item => {
+    const d = data[item.key] || {};
+    const v = d.value != null ? `<div class="cval">${fmt(d.value,item.dec,item.unit)}</div>` : `<div class="cval" style="font-size:13px;color:#374151">데이터 없음</div>`;
+    const ch = fmtChg(d.change, d.pct);
+    return `<div class="card"><div class="clabel"><span class="dot" style="background:${item.dot}"></span>${item.label}</div>${v}<div class="cchg ${ch.cls}">${ch.html}</div>${item.sub?`<div class="csub">${item.sub}</div>`:''}</div>`;
+  }).join('');
+}
+
+async function fetchData() {
+  const btn = document.getElementById('rbtn');
+  const icon = document.getElementById('ricon');
+  btn.disabled = true; icon.className = 'spin';
+  const k = getKey();
+  const prompt = `오늘 기준으로 KOSPI, KOSDAQ, 국제 금 현물가격(USD/oz), 달러원 환율의 현재값·전일대비 변동·변동률을 웹 검색 후 아래 JSON으로만 답해줘. JSON 외 텍스트나 코드블록 없이 숫자는 number 타입으로.
+{"kospi":{"value":숫자,"change":숫자,"pct":숫자},"kosdaq":{"value":숫자,"change":숫자,"pct":숫자},"gold":{"value":숫자,"change":숫자,"pct":숫자},"usdkrw":{"value":숫자,"change":숫자,"pct":숫자}}`;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01'},
+      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})
+    });
+    if (res.status === 401 || res.status === 403) { resetKey(); return; }
+    const json = await res.json();
+    const txt = (json.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    const clean = txt.replace(/```json|```/g,'').trim();
+    const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
+    if (s===-1||e===-1) throw new Error('no json');
+    renderGrid(JSON.parse(clean.slice(s,e+1)));
+    const now = new Date();
+    document.getElementById('utime').textContent = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}) + ' 기준';
+  } catch { document.getElementById('grid').innerHTML = `<div style="grid-column:1/-1;padding:16px 0;font-size:13px;color:#fb923c;">⚠ 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</div>`; }
+  finally { btn.disabled = false; icon.className = ''; icon.textContent = '↻'; }
+}
+
+document.getElementById('kinput').addEventListener('keydown', e => { if(e.key==='Enter') saveKey(); });
+init();
+</script>
+</body>
+</html>
