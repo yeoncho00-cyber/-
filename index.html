@@ -15,9 +15,9 @@ body { background: #111318; font-family: 'Apple SD Gothic Neo','Noto Sans KR',sa
 .key-desc a { color: #7c86f5; text-decoration: none; }
 .key-badge { display: inline-block; background: #1a3a1a; border: 1px solid #2a5a2a; border-radius: 6px; padding: 4px 10px; font-size: 11px; color: #34d399; margin-bottom: 16px; }
 .key-row { display: flex; gap: 8px; margin-bottom: 8px; }
-.key-input { flex: 1; background: #0f1117; border: 1px solid #2a2d3a; border-radius: 8px; padding: 9px 12px; font-size: 13px; color: #e2e4ea; font-family: 'SF Mono','Fira Code',monospace; outline: none; transition: border-color 0.15s; }
+.key-input { flex: 1; background: #0f1117; border: 1px solid #2a2d3a; border-radius: 8px; padding: 9px 12px; font-size: 13px; color: #e2e4ea; outline: none; transition: border-color 0.15s; }
 .key-input:focus { border-color: #5056d6; }
-.key-input::placeholder { color: #3a3d4a; font-family: inherit; }
+.key-input::placeholder { color: #3a3d4a; }
 .key-btn { background: #5056d6; border: none; border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600; color: #fff; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
 .key-btn:hover { background: #4046c0; }
 .key-btn:disabled { background: #2a2d3a; color: #6b7280; cursor: not-allowed; }
@@ -26,9 +26,9 @@ body { background: #111318; font-family: 'Apple SD Gothic Neo','Noto Sans KR',sa
 .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .dash-title { font-size: 11px; font-weight: 600; color: #4b5563; letter-spacing: 0.1em; text-transform: uppercase; }
 .header-r { display: flex; align-items: center; gap: 8px; }
-.updated { font-size: 11px; color: #374151; font-family: 'SF Mono',monospace; }
+.updated { font-size: 11px; color: #374151; font-family: monospace; }
 .ref-btn { background: none; border: 1px solid #2a2d3a; border-radius: 8px; padding: 5px 12px; font-size: 12px; color: #6b7280; cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: inherit; transition: all 0.15s; }
-.ref-btn:hover { background: #1a1d27; color: #e2e4ea; border-color: #3a3d4a; }
+.ref-btn:hover { background: #1a1d27; color: #e2e4ea; }
 .ref-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 @media (max-width: 460px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -36,6 +36,7 @@ body { background: #111318; font-family: 'Apple SD Gothic Neo','Noto Sans KR',sa
 .clabel { font-size: 10px; color: #4b5563; font-weight: 600; letter-spacing: 0.06em; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; text-transform: uppercase; }
 .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
 .cval { font-size: 20px; font-weight: 700; color: #f0f1f5; margin-bottom: 5px; line-height: 1.2; letter-spacing: -0.02em; }
+.cval-err { font-size: 12px; color: #4b5563; margin-bottom: 5px; line-height: 1.5; }
 .cchg { font-size: 12px; font-weight: 500; }
 .csub { font-size: 10px; color: #374151; margin-top: 4px; }
 .up { color: #34d399; } .down { color: #fb923c; } .neutral { color: #6b7280; }
@@ -55,10 +56,10 @@ body { background: #111318; font-family: 'Apple SD Gothic Neo','Noto Sans KR',sa
     <div class="key-card">
       <div class="key-title">Alpha Vantage API 키 입력</div>
       <div class="key-desc">
-        금융 데이터를 무료로 불러옵니다.<br>
+        금·환율 데이터를 무료로 불러옵니다.<br>
         키 발급 → <a href="https://www.alphavantage.co/support/#api-key" target="_blank">alphavantage.co</a> (이름+이메일만, 카드 불필요)
       </div>
-      <div class="key-badge">✓ 완전 무료 · 카드 등록 없음 · 하루 25회</div>
+      <div class="key-badge">✓ 완전 무료 · 카드 등록 없음</div>
       <div class="key-row">
         <input class="key-input" id="kinput" type="text" placeholder="예: ABCDEF1234567890" />
         <button class="key-btn" id="kbtn" onclick="saveKey()">저장</button>
@@ -84,7 +85,7 @@ body { background: #111318; font-family: 'Apple SD Gothic Neo','Noto Sans KR',sa
       <div class="card"><div class="clabel"><span class="dot" style="background:#a78bfa"></span>환율</div><div class="sk" style="height:26px;width:80%;margin-bottom:7px"></div><div class="sk" style="height:13px;width:55%"></div></div>
     </div>
     <div class="footer">
-      <span class="footer-note">Alpha Vantage 데이터 · 15~20분 지연 · 참고용</span>
+      <span class="footer-note">금·환율: Alpha Vantage · KOSPI/KOSDAQ: 한국투자증권 · 참고용</span>
       <button class="reset-btn" onclick="resetKey()">API 키 변경</button>
     </div>
   </div>
@@ -93,8 +94,7 @@ body { background: #111318; font-family: 'Apple SD Gothic Neo','Noto Sans KR',sa
 const getKey = () => localStorage.getItem('av_api_key') || '';
 
 function init() {
-  const k = getKey();
-  if (k) { show('dash'); fetchAll(); }
+  if (getKey()) { show('dash'); fetchAll(); }
   else show('key');
 }
 
@@ -109,23 +109,10 @@ async function saveKey() {
   const btn = document.getElementById('kbtn');
   err.textContent = '';
   if (!k || k.length < 8) { err.textContent = 'API 키를 입력해주세요'; return; }
-  btn.disabled = true; btn.textContent = '확인 중...';
-  try {
-    const r = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=005930.KS&apikey=${k}`);
-    const j = await r.json();
-    if (j['Note'] || j['Information']) throw new Error('limit');
-    if (!j['Global Quote']) throw new Error('invalid');
-    localStorage.setItem('av_api_key', k);
-    show('dash'); fetchAll();
-  } catch(e) {
-    if (e.message === 'limit') {
-      localStorage.setItem('av_api_key', k);
-      show('dash'); fetchAll();
-    } else {
-      err.textContent = '키 확인 실패. 키를 다시 확인해주세요.';
-      btn.disabled = false; btn.textContent = '저장';
-    }
-  }
+  btn.disabled = true; btn.textContent = '저장 중...';
+  localStorage.setItem('av_api_key', k);
+  show('dash');
+  fetchAll();
 }
 
 function resetKey() {
@@ -136,56 +123,50 @@ function resetKey() {
 }
 
 const fmt = (v, dec, unit) => {
-  if (v == null) return '—';
+  if (v == null) return null;
   const n = parseFloat(v);
-  return isNaN(n) ? '—' : (unit||'') + n.toLocaleString('ko-KR', {minimumFractionDigits:dec, maximumFractionDigits:dec});
+  return isNaN(n) ? null : (unit || '') + n.toLocaleString('ko-KR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 };
 
 const fmtChg = (c, p) => {
-  if (c == null) return {html:'—', cls:'neutral'};
+  if (c == null || p == null) return { html: '—', cls: 'neutral' };
   const up = parseFloat(c) >= 0;
-  const ca = Math.abs(parseFloat(c)).toLocaleString('ko-KR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const ca = Math.abs(parseFloat(c)).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const pa = Math.abs(parseFloat(p)).toFixed(2);
-  return {html:`${up?'▲':'▼'} ${ca} (${pa}%)`, cls: up?'up':'down'};
+  return { html: `${up ? '▲' : '▼'} ${ca} (${pa}%)`, cls: up ? 'up' : 'down' };
 };
 
 const CARDS = [
-  { id:'kospi',  label:'KOSPI',  dot:'#378ADD', unit:'',  dec:2 },
-  { id:'kosdaq', label:'KOSDAQ', dot:'#34d399', unit:'',  dec:2 },
-  { id:'gold',   label:'Gold',   dot:'#fbbf24', unit:'$', dec:2, sub:'USD/oz' },
-  { id:'usdkrw', label:'환율',   dot:'#a78bfa', unit:'₩', dec:1, sub:'원/달러' },
+  { id: 'kospi',  label: 'KOSPI',  dot: '#378ADD', unit: '',  dec: 2 },
+  { id: 'kosdaq', label: 'KOSDAQ', dot: '#34d399', unit: '',  dec: 2 },
+  { id: 'gold',   label: 'Gold',   dot: '#fbbf24', unit: '$', dec: 2, sub: 'USD/oz' },
+  { id: 'usdkrw', label: '환율',   dot: '#a78bfa', unit: '₩', dec: 1, sub: '원/달러' },
 ];
 
-let data = { kospi:{}, kosdaq:{}, gold:{}, usdkrw:{} };
+let data = {};
 
 function renderGrid() {
   document.getElementById('grid').innerHTML = CARDS.map(c => {
-    const d = data[c.id] || {};
-    const v = d.value != null
-      ? `<div class="cval">${fmt(d.value, c.dec, c.unit)}</div>`
-      : `<div class="cval" style="font-size:13px;color:#374151">${d.error || '로딩 중...'}</div>`;
-    const ch = fmtChg(d.change, d.pct);
+    const d = data[c.id];
+    let valHtml, chHtml;
+    if (!d) {
+      valHtml = `<div class="sk" style="height:26px;width:80%;margin-bottom:7px"></div>`;
+      chHtml = `<div class="sk" style="height:13px;width:55%"></div>`;
+    } else if (d.error) {
+      valHtml = `<div class="cval-err">${d.error}</div>`;
+      chHtml = `<div class="cchg neutral">—</div>`;
+    } else {
+      const vStr = fmt(d.value, c.dec, c.unit);
+      valHtml = `<div class="cval">${vStr || '—'}</div>`;
+      const ch = fmtChg(d.change, d.pct);
+      chHtml = `<div class="cchg ${ch.cls}">${ch.html}</div>`;
+    }
     return `<div class="card">
       <div class="clabel"><span class="dot" style="background:${c.dot}"></span>${c.label}</div>
-      ${v}
-      <div class="cchg ${ch.cls}">${ch.html}</div>
+      ${valHtml}${chHtml}
       ${c.sub ? `<div class="csub">${c.sub}</div>` : ''}
     </div>`;
   }).join('');
-}
-
-async function fetchQuote(symbol) {
-  const k = getKey();
-  const r = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${k}`);
-  const j = await r.json();
-  if (j['Note'] || j['Information']) throw new Error('rate_limit');
-  const q = j['Global Quote'];
-  if (!q || !q['05. price']) throw new Error('no_data');
-  return {
-    value: parseFloat(q['05. price']),
-    change: parseFloat(q['09. change']),
-    pct: parseFloat(q['10. change percent'].replace('%',''))
-  };
 }
 
 async function fetchFX(from, to) {
@@ -194,42 +175,73 @@ async function fetchFX(from, to) {
   const j = await r.json();
   if (j['Note'] || j['Information']) throw new Error('rate_limit');
   const q = j['Realtime Currency Exchange Rate'];
-  if (!q) throw new Error('no_data');
-  return {
-    value: parseFloat(q['5. Exchange Rate']),
-    change: null,
-    pct: null
-  };
+  if (!q || !q['5. Exchange Rate']) throw new Error('no_data');
+  return { value: parseFloat(q['5. Exchange Rate']), change: null, pct: null };
+}
+
+async function fetchKRX(type) {
+  const isCospi = type === 'kospi';
+  const code = isCospi ? '0001' : '2001';
+  try {
+    const r = await fetch(
+      `https://m.stock.naver.com/api/index/${isCospi ? 'KOSPI' : 'KOSDAQ'}/basic`,
+      { headers: { 'Accept': 'application/json' } }
+    );
+    if (!r.ok) throw new Error('fail');
+    const j = await r.json();
+    return {
+      value: parseFloat(j.closePrice?.replace(/,/g, '') || j.currentPrice?.replace(/,/g, '')),
+      change: parseFloat(j.compareToPreviousClosePrice?.replace(/,/g, '')),
+      pct: parseFloat(j.fluctuationsRatio)
+    };
+  } catch {
+    const r2 = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${isCospi ? '%5EKS11' : '%5EKQ11'}?interval=1d&range=2d`
+    );
+    const j2 = await r2.json();
+    const meta = j2.chart.result[0].meta;
+    const prev = meta.chartPreviousClose || meta.previousClose;
+    const cur = meta.regularMarketPrice;
+    return {
+      value: cur,
+      change: cur - prev,
+      pct: ((cur - prev) / prev) * 100
+    };
+  }
 }
 
 async function fetchAll() {
   const btn = document.getElementById('rbtn');
   const icon = document.getElementById('ricon');
   btn.disabled = true; icon.className = 'spin';
-
-  data = { kospi:{}, kosdaq:{}, gold:{}, usdkrw:{} };
+  data = {};
   renderGrid();
 
-  const fetchers = [
-    fetchQuote('399001.SHZ').catch(() => fetchQuote('KS11')).catch(() => ({value:null,change:null,pct:null,error:'데이터 없음'})),
-    fetchQuote('KOSDAQ').catch(() => ({value:null,change:null,pct:null,error:'데이터 없음'})),
-    fetchQuote('XAUUSD').catch(() => fetchFX('XAU','USD')).catch(() => ({value:null,change:null,pct:null,error:'데이터 없음'})),
-    fetchFX('USD','KRW').catch(() => ({value:null,change:null,pct:null,error:'데이터 없음'})),
-  ];
+  const results = await Promise.allSettled([
+    fetchKRX('kospi'),
+    fetchKRX('kosdaq'),
+    fetchFX('XAU', 'USD'),
+    fetchFX('USD', 'KRW'),
+  ]);
 
-  const [kospi, kosdaq, gold, usdkrw] = await Promise.allSettled(fetchers);
-  data.kospi  = kospi.status  === 'fulfilled' ? kospi.value  : {value:null,error:'오류'};
-  data.kosdaq = kosdaq.status === 'fulfilled' ? kosdaq.value : {value:null,error:'오류'};
-  data.gold   = gold.status   === 'fulfilled' ? gold.value   : {value:null,error:'오류'};
-  data.usdkrw = usdkrw.status === 'fulfilled' ? usdkrw.value : {value:null,error:'오류'};
+  const keys = ['kospi', 'kosdaq', 'gold', 'usdkrw'];
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') {
+      data[keys[i]] = r.value;
+    } else {
+      const isLimit = r.reason?.message === 'rate_limit';
+      data[keys[i]] = { error: isLimit ? '일일 한도 초과\n(25회/일)' : '데이터 없음' };
+    }
+  });
 
   renderGrid();
   const now = new Date();
-  document.getElementById('utime').textContent = now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}) + ' 기준';
+  document.getElementById('utime').textContent =
+    now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) + ' 기준';
   btn.disabled = false; icon.className = ''; icon.textContent = '↻';
 }
 
-document.getElementById('kinput').addEventListener('keydown', e => { if(e.key==='Enter') saveKey(); });
+document.getElementById('kinput')?.addEventListener('keydown', e => { if (e.key === 'Enter') saveKey(); });
 init();
 </script>
 </body>
